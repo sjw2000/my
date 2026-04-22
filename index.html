@@ -19,7 +19,6 @@
 <div id="authForm">
   <input id="email" type="email" placeholder="邮箱"><br><br>
   <input id="password" type="password" placeholder="密码"><br><br>
-  <input type="file" id="avatarUpload"><br><br>
   <div id="buttons">
     <button id="regBtn">注册</button>
     <button id="loginBtn">登录</button>
@@ -37,7 +36,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } 
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBIEn31fCe_-a9-qDlRtBmnIO43NqVcet0",
@@ -51,41 +49,31 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const storage = getStorage(app);
 
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
-const avatarUpload = document.getElementById('avatarUpload');
 const userPanel = document.getElementById('userPanel');
 const username = document.getElementById('username');
 const userAvatar = document.getElementById('userAvatar');
 const authForm = document.getElementById('authForm');
 
-const defaultAvatar = "https://www.gravatar.com/avatar/?d=mp&f=y";
+const defaultAvatar = "https://www.gravatar.com/avatar/?d=mp&f=y"; // 默认头像
 
-async function uploadAvatar(file, userId){
-  if(!file) return defaultAvatar;
-  const storageRef = ref(storage, 'avatars/' + userId + '_' + file.name);
-  await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(storageRef);
-  return url;
-}
-
-document.getElementById('regBtn').addEventListener('click', async () => {
+// 注册事件
+document.getElementById('regBtn').addEventListener('click', () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
-  const file = avatarUpload.files[0];
 
   if(!email){ alert("请输入邮箱"); return; }
   if(!password){ alert("请输入密码"); return; }
 
   createUserWithEmailAndPassword(auth, email, password)
-    .then(async (userCredential) => {
+    .then((userCredential) => {
       const user = userCredential.user;
-      const avatarURL = await uploadAvatar(file, user.uid);
-      await updateProfile(user, {
+      // 设置默认头像和用户名
+      updateProfile(user, {
         displayName: email.split("@")[0],
-        photoURL: avatarURL
+        photoURL: defaultAvatar
       });
       showUserPanel(user);
       alert("注册成功");
@@ -93,6 +81,7 @@ document.getElementById('regBtn').addEventListener('click', async () => {
     .catch(err => alert(err.message));
 });
 
+// 登录事件
 document.getElementById('loginBtn').addEventListener('click', () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
@@ -106,16 +95,17 @@ document.getElementById('loginBtn').addEventListener('click', () => {
     .catch(err => alert(err.message));
 });
 
+// 显示用户头像和个人中心
 function showUserPanel(user){
-  authForm.style.display = "none";
+  authForm.style.display = "none"; // 隐藏注册/登录表单
   userPanel.style.display = "flex";
   userAvatar.src = user.photoURL || defaultAvatar;
   username.textContent = user.displayName || user.email;
 }
 
+// 点击个人中心
 function openProfile(){
-  // 跳转到个人主页，可自定义 URL
-  window.location.href = "profile.html";
+  alert("这里可以跳转到个人主页或信息页面！");
 }
 </script>
 
