@@ -1,263 +1,194 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>我的社区</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* 登录区 */
-    #loginBox {
-      background-color: #fff;
-      padding: 20px;
-      width: 350px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    #loginBox input {
-      width: calc(100% - 12px);
-      padding: 6px;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    #loginBox button,
-    #postArea button {
-      padding: 6px 12px;
-      margin-right: 5px;
-      border: none;
-      border-radius: 4px;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-
-    #loginBox button:hover,
-    #postArea button:hover {
-      background-color: #45a049;
-    }
-
-    /* 用户信息 */
-    #userInfo {
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-    }
-
-    #userInfo img {
-      border-radius: 50%;
-      margin-right: 10px;
-      width: 40px;
-      height: 40px;
-    }
-
-    /* 发帖区 */
-    #postArea {
-      background-color: #fff;
-      padding: 20px;
-      width: 600px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    #postArea textarea {
-      width: 100%;
-      height: 80px;
-      padding: 6px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-      resize: none;
-    }
-
-    /* 帖子列表 */
-    #postList .post {
-      display: flex;
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
-    }
-
-    #postList .post img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    #postList .post-content {
-      flex: 1;
-    }
-
-    #postList .post-content b {
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    #postList .post-content span {
-      font-size: 12px;
-      color: #888;
-      margin-left: 6px;
-    }
-
-    #postList .post-content p {
-      margin: 4px 0 0 0;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-  </style>
+<meta charset="UTF-8">
+<title>我的社区</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+    background-image: url('images/placeholder.jpg'); /* 先用占位背景 */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+  #loginBox, #postArea {
+    background-color: rgba(255,255,255,0.85);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    padding: 20px;
+    max-width: 600px;
+    margin-bottom: 20px;
+  }
+  #postList .post {
+    display: flex;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+  }
+  #postList .post img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  #postList .post-content b { font-weight: bold; }
+  #postList .post-content span { font-size: 12px; color: #888; margin-left: 6px; }
+  #postList .post-content p { margin: 4px 0 0 0; font-size: 14px; line-height: 1.4; }
+  .reply-to { font-size: 13px; color: #555; margin-bottom: 4px; padding-left: 10px; border-left: 2px solid #ccc; }
+</style>
 </head>
 <body>
 
-  <div id="loginBox">
-    <h2>登录系统</h2>
-    <input id="email" placeholder="邮箱"><br>
-    <input id="password" type="password" placeholder="密码"><br>
-    <button onclick="register()">注册</button>
-    <button onclick="login()">登录</button>
-  </div>
+<div id="loginBox">
+  <h2>登录系统</h2>
+  <input id="email" placeholder="邮箱"><br>
+  <input id="password" type="password" placeholder="密码"><br>
+  <button onclick="register()">注册</button>
+  <button onclick="login()">登录</button>
+</div>
 
-  <div id="userInfo"></div>
+<div id="userInfo"></div>
+<button id="logoutBtn" onclick="logout()" style="display:none;">退出登录</button>
 
-  <button id="logoutBtn" onclick="logout()" style="display:none;">退出登录</button>
+<div id="postArea" style="display:none;">
+  <textarea id="content" placeholder="说点什么..."></textarea><br>
+  <button onclick="addPost()">发布</button>
+  <h3>帖子列表</h3>
+  <div id="postList"></div>
+</div>
 
-  <div id="postArea" style="display:none;">
-    <textarea id="content" placeholder="说点什么..."></textarea><br>
-    <button onclick="addPost()">发布</button>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <h3>帖子列表</h3>
-    <div id="postList"></div>
-  </div>
+// 🔥 替换为你的 Firebase 配置
+const firebaseConfig = {
+  apiKey: "AIzaSyBIEn31fCe_-a9-qDlRtBmnIO43NqVcet0",
+  authDomain: "myapp-8d003.firebaseapp.com",
+  projectId: "myapp-8d003",
+  storageBucket: "myapp-8d003.firebasestorage.app",
+  messagingSenderId: "131494170008",
+  appId: "1:131494170008:web:ffbaa3624bb98023ca2fed",
+  measurementId: "G-Q031FXQZCM"
+};
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    // 🔥 替换为你的 Firebase 配置
-    
-    const firebaseConfig = {
-    apiKey: "AIzaSyBIEn31fCe_-a9-qDlRtBmnIO43NqVcet0",
-    authDomain: "myapp-8d003.firebaseapp.com",
-    projectId: "myapp-8d003",
-    storageBucket: "myapp-8d003.firebasestorage.app",
-    messagingSenderId: "131494170008",
-    appId: "1:131494170008:web:ffbaa3624bb98023ca2fed",
-    measurementId: "G-Q031FXQZCM"
-  };
+function formatTime(timestamp){
+  const date = new Date(timestamp);
+  return date.getFullYear()+"-"+(date.getMonth()+1).toString().padStart(2,'0')+"-"+date.getDate().toString().padStart(2,'0')+" "+date.getHours().toString().padStart(2,'0')+":"+date.getMinutes().toString().padStart(2,'0');
+}
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+// 当前页面保存帖子数据
+let postsData = [];
 
-    function formatTime(timestamp){
-      const date = new Date(timestamp);
-      return date.getFullYear() + "-" +
-             (date.getMonth()+1).toString().padStart(2,'0') + "-" +
-             date.getDate().toString().padStart(2,'0') + " " +
-             date.getHours().toString().padStart(2,'0') + ":" +
-             date.getMinutes().toString().padStart(2,'0');
-    }
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    showUser(user);
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "inline";
+    document.getElementById("postArea").style.display = "block";
+    loadPosts();
+  } else {
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "none";
+    document.getElementById("postArea").style.display = "none";
+    document.getElementById("userInfo").innerHTML = "";
+  }
+});
 
-    onAuthStateChanged(auth, (user) => {
-      if(user){
-        showUser(user);
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("logoutBtn").style.display = "inline";
-        document.getElementById("postArea").style.display = "block";
-        loadPosts();
-      } else {
-        document.getElementById("loginBox").style.display = "block";
-        document.getElementById("logoutBtn").style.display = "none";
-        document.getElementById("postArea").style.display = "none";
-        document.getElementById("userInfo").innerHTML = "";
-      }
-    });
+window.register = async function(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    const avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed="+email;
+    await updateProfile(res.user, { displayName: email.split("@")[0], photoURL: avatar });
+    alert("注册成功");
+  } catch(err){
+    alert(err.message);
+  }
+};
 
-    window.register = async function(){
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try {
-        const res = await createUserWithEmailAndPassword(auth, email, password);
-        const avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + email;
-        await updateProfile(res.user, {
-          displayName: email.split("@")[0],
-          photoURL: avatar
-        });
-        alert("注册成功");
-      } catch(err){
-        alert(err.message);
-      }
-    };
+window.login = async function(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    alert("登录成功");
+  }catch(err){
+    alert(err.message);
+  }
+};
 
-    window.login = async function(){
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try{
-        await signInWithEmailAndPassword(auth,email,password);
-        alert("登录成功");
-      }catch(err){
-        alert(err.message);
-      }
-    };
+window.logout = function(){
+  signOut(auth);
+};
 
-    window.logout = function(){
-      signOut(auth);
-    };
+function showUser(user){
+  document.getElementById("userInfo").innerHTML = `
+    <img src="${user.photoURL}" width="40">
+    <b>${user.displayName}</b>
+  `;
+}
 
-    function showUser(user){
-      document.getElementById("userInfo").innerHTML = `
-        <img src="${user.photoURL}" width="40">
-        <b>${user.displayName}</b>
-      `;
-    }
+window.addPost = async function(replyTo=null){
+  const content = document.getElementById("content").value;
+  const user = auth.currentUser;
+  if(!content) return alert("请输入内容");
+  if(!user) return alert("请先登录");
+  await addDoc(collection(db,"posts"),{
+    content: content,
+    name: user.displayName,
+    avatar: user.photoURL,
+    time: Date.now(),
+    replyTo: replyTo // 回复哪条帖子
+  });
+  document.getElementById("content").value = "";
+  loadPosts();
+};
 
-    window.addPost = async function(){
-      const content = document.getElementById("content").value;
-      const user = auth.currentUser;
-      if(!content) return alert("请输入内容");
-      if(!user) return alert("请先登录");
-      await addDoc(collection(db,"posts"),{
-        content: content,
-        name: user.displayName,
-        avatar: user.photoURL,
-        time: Date.now()
-      });
-      document.getElementById("content").value = "";
-      loadPosts();
-    };
+// 点击回复某条帖子
+function replyPost(postId){
+  const post = postsData.find(p=>p.id===postId);
+  if(!post) return;
+  document.getElementById("content").value = `@${post.name} `;
+  document.getElementById("content").focus();
+}
 
-    async function loadPosts(){
-      const q = query(collection(db,"posts"), orderBy("time","desc"));
-      const querySnapshot = await getDocs(q);
-      const list = document.getElementById("postList");
-      list.innerHTML = "";
-      querySnapshot.forEach((doc)=>{
-        const data = doc.data();
-        list.innerHTML += `
-          <div class="post">
-            <img src="${data.avatar}">
-            <div class="post-content">
-              <b>${data.name}</b> <span>${formatTime(data.time)}</span>
-              <p>${data.content}</p>
-            </div>
-          </div>
-        `;
-      });
-    }
-  </script>
+// 加载帖子
+async function loadPosts(){
+  const q = query(collection(db,"posts"), orderBy("time","desc"));
+  const querySnapshot = await getDocs(q);
+  const list = document.getElementById("postList");
+  list.innerHTML = "";
+  postsData = [];
+  querySnapshot.forEach((doc)=>{
+    const data = doc.data();
+    data.id = doc.id;
+    postsData.push(data);
+
+    list.innerHTML += `
+      <div class="post">
+        <img src="${data.avatar}">
+        <div class="post-content">
+          ${data.replyTo ? `<p class="reply-to">回复 @${postsData.find(p=>p.id===data.replyTo)?.name || ''}</p>` : ''}
+          <b>${data.name}</b> <span>${formatTime(data.time)}</span>
+          <p>${data.content}</p>
+          <button onclick="replyPost('${data.id}')">回复</button>
+        </div>
+      </div>
+    `;
+  });
+}
+</script>
 
 </body>
 </html>
