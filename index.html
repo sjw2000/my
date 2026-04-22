@@ -4,7 +4,7 @@
 
 <h2>登录系统</h2>
 
-<input id="email" placeholder="邮箱">
+<input id="email" type="email" placeholder="邮箱">
 <input id="password" type="password" placeholder="密码">
 <button onclick="register()">注册</button>
 <button onclick="login()">登录</button>
@@ -28,16 +28,28 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 window.register = function(){
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+
+  if(!email){
+    alert("请输入邮箱");
+    return;
+  }
+
+  if(!password){
+    alert("请输入密码");
+    return;
+  }
+
   createUserWithEmailAndPassword(auth, email, password)
     .then(()=>alert('注册成功'))
     .catch(err=>alert(err.message));
 }
 
 window.login = function(){
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+
   signInWithEmailAndPassword(auth, email, password)
     .then(()=>alert('登录成功'))
     .catch(err=>alert(err.message));
@@ -45,3 +57,4 @@ window.login = function(){
 </script>
 
 </body>
+</html>
