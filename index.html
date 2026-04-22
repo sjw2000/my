@@ -2,64 +2,55 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>登录系统</title>
-
-  <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-    }
-
-    #userPanel {
-      display: none;
-      align-items: center;
-      margin-top: 20px;
-    }
-
-    #userPanel img {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    button {
-      margin-top: 10px;
-      padding: 8px 12px;
-    }
-  </style>
+  <title>我的社区</title>
 </head>
-
 <body>
 
 <h2>登录系统</h2>
 
-<div id="authForm">
-  <input id="email" type="email" placeholder="邮箱"><br><br>
-  <input id="password" type="password" placeholder="密码"><br><br>
+<input id="email" placeholder="邮箱"><br><br>
+<input id="password" type="password" placeholder="密码"><br><br>
 
-  <button onclick="register()">注册</button>
-  <button onclick="login()">登录</button>
-</div>
+<button onclick="register()">注册</button>
+<button onclick="login()">登录</button>
+<button onclick="logout()">退出登录</button>
 
-<div id="userPanel">
-  <img id="avatar">
-  <span id="name"></span>
-  <button onclick="profile()">个人中心</button>
+<hr>
+
+<div id="userInfo"></div>
+
+<hr>
+
+<div id="postArea" style="display:none;">
+  <h3>发帖</h3>
+  <textarea id="content" placeholder="说点什么..." style="width:300px;height:80px;"></textarea><br><br>
+  <button onclick="addPost()">发布</button>
+
+  <h3>帖子列表</h3>
+  <div id="postList"></div>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔥 换成你自己的 Firebase 配置
   const firebaseConfig = {
     apiKey: "AIzaSyBIEn31fCe_-a9-qDlRtBmnIO43NqVcet0",
     authDomain: "myapp-8d003.firebaseapp.com",
@@ -72,57 +63,106 @@ import {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-const defaultAvatar = "https://api.dicebear.com/7.x/bottts/svg";
+// ✅ 自动登录状态监听
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    showUser(user);
+    document.getElementById("postArea").style.display = "block";
+    loadPosts();
+  } else {
+    document.getElementById("userInfo").innerHTML = "";
+    document.getElementById("postArea").style.display = "none";
+  }
+});
 
-// 注册
-window.register = function () {
-  const email = document.getElementById("email").value.trim();
+// ✅ 注册
+window.register = async function () {
+  const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  if (!email) return alert("请输入邮箱");
-  if (!password) return alert("请输入密码");
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
 
-  createUserWithEmailAndPassword(auth, email, password)
-    .then(async (res) => {
+    const avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + email;
 
-      await updateProfile(res.user, {
-        displayName: email.split("@")[0],
-        photoURL: defaultAvatar
-      });
+    await updateProfile(res.user, {
+      displayName: email.split("@")[0],
+      photoURL: avatar
+    });
 
-      showUser(res.user);
-      alert("注册成功");
-    })
-    .catch(err => alert(err.message));
+    alert("注册成功");
+  } catch (err) {
+    alert(err.message);
+  }
 };
 
-// 登录
-window.login = function () {
-  const email = document.getElementById("email").value.trim();
+// ✅ 登录
+window.login = async function () {
+  const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  signInWithEmailAndPassword(auth, email, password)
-    .then(res => {
-      showUser(res.user);
-      alert("登录成功");
-    })
-    .catch(err => alert(err.message));
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("登录成功");
+  } catch (err) {
+    alert(err.message);
+  }
 };
 
-// 显示用户信息
+// ✅ 退出
+window.logout = function () {
+  signOut(auth);
+};
+
+// ✅ 显示用户信息
 function showUser(user) {
-  document.getElementById("authForm").style.display = "none";
-  document.getElementById("userPanel").style.display = "flex";
-
-  document.getElementById("avatar").src = user.photoURL || defaultAvatar;
-  document.getElementById("name").innerText = user.displayName || user.email;
+  document.getElementById("userInfo").innerHTML = `
+    <img src="${user.photoURL}" width="40" style="border-radius:50%">
+    <b>${user.displayName}</b>
+  `;
 }
 
-// 个人中心
-window.profile = function () {
-  alert("这里可以做个人主页");
+// ✅ 发帖
+window.addPost = async function () {
+  const content = document.getElementById("content").value;
+  const user = auth.currentUser;
+
+  if (!content) return alert("请输入内容");
+  if (!user) return alert("请先登录");
+
+  await addDoc(collection(db, "posts"), {
+    content: content,
+    name: user.displayName,
+    avatar: user.photoURL,
+    time: Date.now()
+  });
+
+  document.getElementById("content").value = "";
+  loadPosts();
 };
+
+// ✅ 加载帖子
+async function loadPosts() {
+  const q = query(collection(db, "posts"), orderBy("time", "desc"));
+  const querySnapshot = await getDocs(q);
+
+  const list = document.getElementById("postList");
+  list.innerHTML = "";
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+
+    list.innerHTML += `
+      <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+        <img src="${data.avatar}" width="30" style="border-radius:50%">
+        <b>${data.name}</b>
+        <p>${data.content}</p>
+      </div>
+    `;
+  });
+}
 
 </script>
 
