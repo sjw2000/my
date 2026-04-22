@@ -5,7 +5,7 @@
   <title>我的社区</title>
 </head>
 <body>
-
+<div id="loginBox">
 <h2>登录系统</h2>
 
 <input id="email" placeholder="邮箱"><br><br>
@@ -13,6 +13,7 @@
 
 <button onclick="register()">注册</button>
 <button onclick="login()">登录</button>
+  </div>
 <button onclick="logout()">退出登录</button>
 
 <hr>
@@ -66,17 +67,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ✅ 自动登录状态监听
+
 onAuthStateChanged(auth, (user) => {
   if (user) {
     showUser(user);
+
+    // ✅ 隐藏登录框
+    document.getElementById("loginBox").style.display = "none";
+
     document.getElementById("postArea").style.display = "block";
     loadPosts();
   } else {
+    // ✅ 显示登录框
+    document.getElementById("loginBox").style.display = "block";
+
     document.getElementById("userInfo").innerHTML = "";
     document.getElementById("postArea").style.display = "none";
   }
 });
-
 // ✅ 注册
 window.register = async function () {
   const email = document.getElementById("email").value;
