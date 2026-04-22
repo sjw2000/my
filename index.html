@@ -4,10 +4,11 @@
 
 <h2>登录系统</h2>
 
-<input id="email" type="email" placeholder="邮箱">
-<input id="password" type="password" placeholder="密码">
-<button onclick="register()">注册</button>
-<button onclick="login()">登录</button>
+<input id="email" type="email" placeholder="邮箱"><br><br>
+<input id="password" type="password" placeholder="密码"><br><br>
+
+<button id="regBtn">注册</button>
+<button id="loginBtn">登录</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -27,9 +28,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-window.register = function(){
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+// 获取输入框
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+
+// 注册
+document.getElementById('regBtn').addEventListener('click', () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   if(!email){
     alert("请输入邮箱");
@@ -44,16 +50,17 @@ window.register = function(){
   createUserWithEmailAndPassword(auth, email, password)
     .then(()=>alert('注册成功'))
     .catch(err=>alert(err.message));
-}
+});
 
-window.login = function(){
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+// 登录
+document.getElementById('loginBtn').addEventListener('click', () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   signInWithEmailAndPassword(auth, email, password)
     .then(()=>alert('登录成功'))
     .catch(err=>alert(err.message));
-}
+});
 </script>
 
 </body>
